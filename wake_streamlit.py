@@ -1,5 +1,6 @@
 import os
 import sys
+import time  # 新增：用于强制等待
 
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
@@ -26,6 +27,7 @@ if not STREAMLIT_URLS:
 def wake_one(url: str, service: Service) -> bool:
     """访问单个 Streamlit 地址，必要时点击唤醒按钮。返回是否成功。"""
     options = Options()
+    # 无头模式，静默运行，不显示浏览器界面
     options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
@@ -42,6 +44,7 @@ def wake_one(url: str, service: Service) -> bool:
         wait = WebDriverWait(driver, 15)
 
         try:
+            # 尝试定位“唤醒”按钮
             button = wait.until(
                 EC.element_to_be_clickable(
                     (By.XPATH, "//button[contains(text(),'Yes, get this app back up')]")
@@ -51,12 +54,19 @@ def wake_one(url: str, service: Service) -> bool:
             button.click()
 
             try:
+                # 等待按钮消失
                 wait.until(
                     EC.invisibility_of_element_located(
                         (By.XPATH, "//button[contains(text(),'Yes, get this app back up')]")
                     )
                 )
                 print("✅ 唤醒按钮已消失，应用应正在恢复")
+                
+                # === 新增等待逻辑 ===
+                print("等待 30 秒，确保服务器完成启动...")
+                time.sleep(30) 
+                # ====================
+                
                 return True
             except TimeoutException:
                 print("❌ 按钮已点击但未消失，可能唤醒失败")
